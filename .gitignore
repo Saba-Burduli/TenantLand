@@ -1,0 +1,32 @@
+# Build artifacts
+bin/
+obj/
+out/
+artifacts/
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# IDE files
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and runtime files
+*.log
+api.pid
+
+# Local secrets and env
+.env
+.env.*
+appsettings.Local.json

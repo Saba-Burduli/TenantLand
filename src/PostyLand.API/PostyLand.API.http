@@ -1,0 +1,21 @@
+@PostyLand.API_HostAddress = http://localhost:5166
+
+GET {{PostyLand.API_HostAddress}}/health
+Accept: application/json
+
+###
+
+POST {{PostyLand.API_HostAddress}}/api/tenants/register
+Content-Type: application/json
+
+{
+  "name": "Acme Inc",
+  "subdomain": "acme",
+  "adminEmail": "owner@acme.com",
+  "adminPassword": "StrongPass123!",
+  "plan": "Pro",
+  "employeeLimit": 50,
+  "renewalDate": "2030-01-01T00:00:00Z"
+}
+
+###

@@ -1,0 +1,13 @@
+using Hangfire;
+using PostyLand.Application.Common.Interfaces;
+
+namespace PostyLand.Infrastructure.BackgroundJobs;
+
+public sealed class TenantOnboardingJobClient(IBackgroundJobClient backgroundJobClient) : ITenantOnboardingJobClient
+{
+    public string Enqueue(Guid tenantId)
+    {
+        return backgroundJobClient.Enqueue<TenantOnboardingJob>(
+            job => job.RunAsync(tenantId, CancellationToken.None));
+    }
+}
