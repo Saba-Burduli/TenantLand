@@ -1,6 +1,7 @@
 using PostyLand.Application.Common.Contexts;
 using PostyLand.Application.Common.Exceptions;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Domain.Enums;
 
 namespace PostyLand.Application.Features.Tenants;
@@ -47,3 +48,5 @@ public sealed class TenantResolverService(
         };
     }
 }
+
+

@@ -1,19 +1,18 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Persistence.Context;
 
 namespace PostyLand.API.Controllers;
 
-[ApiController]
 [Route("api/tenant")]
 public sealed class TenantDiagnosticsController(
     ITenantProvider tenantProvider,
     IUserContextProvider userContextProvider,
-    TenantDbContext tenantDbContext) : ControllerBase
+    TenantDbContext tenantDbContext) : TenantBaseController
 {
-    [Authorize]
     [HttpGet("ping")]
     public IActionResult Ping()
     {
@@ -30,3 +29,5 @@ public sealed class TenantDiagnosticsController(
         });
     }
 }
+
+

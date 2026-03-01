@@ -13,4 +13,5 @@ public sealed class Subscription
     public bool IsActive { get; set; } = true;
 
     public Tenant? Tenant { get; set; }
+    public ICollection<BillingHistory> BillingHistoryEntries { get; set; } = [];
 }

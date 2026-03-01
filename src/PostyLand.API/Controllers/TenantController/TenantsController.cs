@@ -4,9 +4,8 @@ using PostyLand.Application.Features.Tenants;
 
 namespace PostyLand.API.Controllers;
 
-[ApiController]
 [Route("api/tenants")]
-public sealed class TenantsController(ITenantRegistrationService tenantRegistrationService) : ControllerBase
+public sealed class TenantsController(ITenantRegistrationService tenantRegistrationService) : TenantBaseController
 {
     [AllowAnonymous]
     [HttpPost("register")]

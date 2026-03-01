@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Persistence.Context;
 
 namespace PostyLand.Persistence.Factories;
@@ -25,3 +26,5 @@ public sealed class TenantDbContextFactory(
         return Task.FromResult(CreateDbContext());
     }
 }
+
+

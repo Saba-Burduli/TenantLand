@@ -13,4 +13,5 @@ public sealed class Tenant
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Subscription? Subscription { get; set; }
+    public ICollection<BillingHistory> BillingHistoryEntries { get; set; } = [];
 }

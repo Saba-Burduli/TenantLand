@@ -1,5 +1,6 @@
 using Hangfire;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 
 namespace PostyLand.Infrastructure.BackgroundJobs;
 
@@ -11,3 +12,5 @@ public sealed class TenantOnboardingJobClient(IBackgroundJobClient backgroundJob
             job => job.RunAsync(tenantId, CancellationToken.None));
     }
 }
+
+

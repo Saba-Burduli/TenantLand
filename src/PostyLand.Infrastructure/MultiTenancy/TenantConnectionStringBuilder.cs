@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Npgsql;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 
 namespace PostyLand.Infrastructure.MultiTenancy;
 
@@ -17,3 +18,5 @@ public sealed class TenantConnectionStringBuilder(IOptions<TenantDatabaseOptions
         return builder.ConnectionString;
     }
 }
+
+

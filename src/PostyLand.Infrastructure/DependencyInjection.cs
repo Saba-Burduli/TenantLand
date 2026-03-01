@@ -4,7 +4,8 @@ using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Infrastructure.Auth;
 using PostyLand.Infrastructure.BackgroundJobs;
 using PostyLand.Infrastructure.MultiTenancy;
@@ -44,3 +45,5 @@ public static class DependencyInjection
         return services;
     }
 }
+
+

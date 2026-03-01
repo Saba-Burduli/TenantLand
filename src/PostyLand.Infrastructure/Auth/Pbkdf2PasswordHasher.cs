@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 
 namespace PostyLand.Infrastructure.Auth;
 
@@ -23,3 +24,5 @@ public sealed class Pbkdf2PasswordHasher : IPasswordHasher
         return $"{Convert.ToBase64String(salt)}:{Convert.ToBase64String(key)}";
     }
 }
+
+
