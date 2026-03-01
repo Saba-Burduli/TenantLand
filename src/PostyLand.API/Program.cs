@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.IdentityModel.Tokens;
 using PostyLand.Application;
+using PostyLand.Application.Features.ExternalAuth;
 using PostyLand.API.Auth;
 using PostyLand.API.Hangfire;
 using PostyLand.API.Logging;
@@ -31,6 +32,8 @@ builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptio
 builder.Services.Configure<TenantResolutionOptions>(builder.Configuration.GetSection(TenantResolutionOptions.SectionName));
 builder.Services.AddSingleton<RequestContextEnricher>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
