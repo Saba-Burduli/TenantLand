@@ -1,23 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using PostyLand.Application.Common.Exceptions;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Domain.Entities;
 using PostyLand.Persistence.Context;
+using PostyLand.Persistence.Repositories.BaseRepository;
 
 namespace PostyLand.Persistence.Repositories;
 
-public sealed class TenantStore(MainDbContext dbContext) : ITenantStore
+public sealed class TenantStore(MainDbContext dbContext) : BaseRepository<Tenant>(dbContext), ITenantStore
 {
     public Task<Tenant?> GetBySubdomainAsync(string subdomain, CancellationToken cancellationToken)
     {
         return dbContext.Tenants.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Subdomain == subdomain, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Subdomain == subdomain, cancellationToken);
     }
 
-    public Task<Tenant?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken)
+    public Task<Tenant?> GetByIdAsync(Guid tenantId, CancellationToken _)
     {
-        return dbContext.Tenants.SingleOrDefaultAsync(x => x.Id == tenantId, cancellationToken);
+        return base.GetByIdAsync(tenantId);
     }
 
     public Task<bool> ExistsBySubdomainAsync(string subdomain, CancellationToken cancellationToken)
@@ -25,9 +27,9 @@ public sealed class TenantStore(MainDbContext dbContext) : ITenantStore
         return dbContext.Tenants.AnyAsync(x => x.Subdomain == subdomain, cancellationToken);
     }
 
-    public Task AddAsync(Tenant tenant, CancellationToken cancellationToken)
+    public Task AddAsync(Tenant tenant, CancellationToken _)
     {
-        return dbContext.Tenants.AddAsync(tenant, cancellationToken).AsTask();
+        return base.AddAsync(tenant);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)
@@ -39,7 +41,7 @@ public sealed class TenantStore(MainDbContext dbContext) : ITenantStore
     {
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await base.SaveChangesAsync();
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == PostgresErrorCodes.UniqueViolation)
         {
@@ -47,3 +49,5 @@ public sealed class TenantStore(MainDbContext dbContext) : ITenantStore
         }
     }
 }
+
+
