@@ -37,6 +37,20 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
     }
 
     [Fact]
+    public async Task ExternalAuthLogin_ShouldReturnValidationError_WhenProviderIsNotConfigured()
+    {
+        var googleResponse = await fixture.Client.GetAsync("/auth/google/login?subdomain=acme");
+        var googleBody = await googleResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, googleResponse.StatusCode);
+        Assert.Contains("Google OAuth options are not configured", googleBody, StringComparison.OrdinalIgnoreCase);
+
+        var microsoftResponse = await fixture.Client.GetAsync("/auth/microsoft/login?subdomain=acme");
+        var microsoftBody = await microsoftResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.BadRequest, microsoftResponse.StatusCode);
+        Assert.Contains("Microsoft OAuth options are not configured", microsoftBody, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task TenantRegistrationAndOnboarding_ShouldCreateTenantDatabaseAndCompleteJob()
     {
         var tenant = await fixture.RegisterTenantAndWaitAsync();

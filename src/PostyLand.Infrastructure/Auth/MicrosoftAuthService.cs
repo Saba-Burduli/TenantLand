@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using FluentValidation;
 using Microsoft.Extensions.Options;
 using PostyLand.Application.Common.Exceptions;
 using PostyLand.Application.Features.ExternalAuth;
@@ -107,7 +108,7 @@ public sealed class MicrosoftAuthService(
             string.IsNullOrWhiteSpace(provider.RedirectUri) ||
             string.IsNullOrWhiteSpace(provider.TenantId))
         {
-            throw new InvalidOperationException("Microsoft OAuth options are not configured.");
+            throw new ValidationException("Microsoft OAuth options are not configured.");
         }
     }
 }

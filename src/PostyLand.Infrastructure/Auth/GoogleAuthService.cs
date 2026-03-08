@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using FluentValidation;
 using Microsoft.Extensions.Options;
 using PostyLand.Application.Common.Exceptions;
 using PostyLand.Application.Features.ExternalAuth;
@@ -99,7 +100,7 @@ public sealed class GoogleAuthService(
             string.IsNullOrWhiteSpace(provider.ClientSecret) ||
             string.IsNullOrWhiteSpace(provider.RedirectUri))
         {
-            throw new InvalidOperationException($"{providerName} OAuth options are not configured.");
+            throw new ValidationException($"{providerName} OAuth options are not configured.");
         }
     }
 }

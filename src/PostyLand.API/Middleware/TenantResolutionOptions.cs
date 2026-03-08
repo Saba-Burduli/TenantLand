@@ -12,6 +12,8 @@ public sealed class TenantResolutionOptions
         "/hangfire",
         "/openapi",
         "/swagger",
+        "/migrations",
+        "/api/tenants",
         "/api/tenants/register",
         "/api/admin",
         "/auth"
