@@ -10,6 +10,7 @@ using PostyLand.Application.Features.ExternalAuth;
 using PostyLand.Infrastructure.Auth;
 using PostyLand.Infrastructure.BackgroundJobs;
 using PostyLand.Infrastructure.MultiTenancy;
+using PostyLand.Infrastructure.Payments;
 using PostyLand.Infrastructure.Provisioning;
 
 namespace PostyLand.Infrastructure;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ITenantOnboardingJobClient, TenantOnboardingJobClient>();
         services.AddScoped<TenantOnboardingJob>();
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        services.AddScoped<IPaymentService, PaymentService>();
         services.AddScoped<IExternalAuthService, ExternalAuthService>();
         services.AddScoped<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IMicrosoftAuthService, MicrosoftAuthService>();

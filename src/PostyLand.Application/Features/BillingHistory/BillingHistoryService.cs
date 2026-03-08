@@ -10,7 +10,9 @@ namespace PostyLand.Application.Features.BillingHistory;
 public sealed class BillingHistoryService(
     IValidator<CreateBillingHistoryRequest> createValidator,
     IBillingHistoryStore billingHistoryStore,
-    ITenantStore tenantStore) : IBillingHistoryService
+    ITenantStore tenantStore,
+    IPaymentService paymentService,
+    IUserContextProvider userContextProvider) : IBillingHistoryService
 {
     public Task<BillingHistoryItem> CreateForTenantAsync(
         Guid tenantId,
@@ -55,6 +57,16 @@ public sealed class BillingHistoryService(
             {
                 throw new ValidationException("Subscription does not belong to the resolved tenant.");
             }
+        }
+
+        var userId = userContextProvider.Current?.UserId ?? Guid.Empty;
+        var paymentProcessed = await paymentService.ProcessPaymentAsync(
+            request.Amount,
+            request.Currency.Trim(),
+            userId);
+        if (!paymentProcessed)
+        {
+            throw new InfrastructureException("Payment processing failed.");
         }
 
         var entry = new DomainBillingHistory
