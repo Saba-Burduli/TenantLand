@@ -54,7 +54,13 @@ public sealed class AdminUserEntityConfiguration : BaseEntityConfiguration<Admin
         entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
         entity.Property(x => x.PasswordHash).IsRequired();
         entity.Property(x => x.Role).HasConversion<string>().HasMaxLength(50).IsRequired();
+        entity.Property(x => x.ExternalProvider).HasConversion<string>().HasMaxLength(50);
+        entity.Property(x => x.ExternalProviderId).HasMaxLength(200);
+        entity.Property(x => x.IsExternalAccount).IsRequired();
         entity.HasIndex(x => x.Email).IsUnique();
+        entity.HasIndex(x => new { x.ExternalProvider, x.ExternalProviderId })
+            .IsUnique()
+            .HasFilter("\"ExternalProvider\" IS NOT NULL AND \"ExternalProviderId\" IS NOT NULL");
     }
 }
 
