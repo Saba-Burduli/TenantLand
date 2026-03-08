@@ -13,6 +13,7 @@ public sealed class TenantResolutionOptions
         "/openapi",
         "/swagger",
         "/migrations",
+        "/api/payments",
         "/api/tenants",
         "/api/tenants/register",
         "/api/admin",
