@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using PostyLand.Domain.Enums;
 
 namespace PostyLand.API.Auth;
 
@@ -9,7 +10,7 @@ public static class AuthorizationClaimEvaluator
         var role = user.FindFirst(ClaimTypes.Role)?.Value
                    ?? user.FindFirst("Role")?.Value
                    ?? string.Empty;
-        if (!role.Equals("PlatformAdmin", StringComparison.OrdinalIgnoreCase))
+        if (!Enum.TryParse<RoleStatus>(role, true, out var roleStatus) || roleStatus != RoleStatus.PlatformAdmin)
         {
             return false;
         }

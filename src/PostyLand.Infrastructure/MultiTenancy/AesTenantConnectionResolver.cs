@@ -1,7 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 
 namespace PostyLand.Infrastructure.MultiTenancy;
 
@@ -40,3 +41,5 @@ public sealed class AesTenantConnectionResolver(IOptions<EncryptionOptions> encr
         return Encoding.UTF8.GetString(plaintext);
     }
 }
+
+

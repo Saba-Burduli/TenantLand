@@ -1,5 +1,6 @@
 using FluentValidation;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Domain.Entities;
 using PostyLand.Domain.Enums;
 
@@ -56,7 +57,7 @@ public sealed class TenantRegistrationService(
             Id = Guid.NewGuid(),
             Email = request.AdminEmail.Trim().ToLowerInvariant(),
             PasswordHash = passwordHasher.Hash(request.AdminPassword),
-            Role = "Owner"
+            Role = RoleStatus.Owner
         };
 
         await tenantStore.AddAsync(tenant, cancellationToken);
@@ -73,3 +74,5 @@ public sealed class TenantRegistrationService(
         };
     }
 }
+
+

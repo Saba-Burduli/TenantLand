@@ -1,4 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Compile Remove="Enums\RoleStatus.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\PostyLand.Domain\PostyLand.Domain.csproj" />

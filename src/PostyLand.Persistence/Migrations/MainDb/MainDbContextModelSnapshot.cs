@@ -33,6 +33,17 @@ namespace PostyLand.Persistence.Migrations.MainDb
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)");
 
+                    b.Property<string>("ExternalProvider")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ExternalProviderId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsExternalAccount")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("text");
@@ -47,7 +58,58 @@ namespace PostyLand.Persistence.Migrations.MainDb
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("ExternalProvider", "ExternalProviderId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalProvider\" IS NOT NULL AND \"ExternalProviderId\" IS NOT NULL");
+
                     b.ToTable("admin_users", (string)null);
+                });
+
+            modelBuilder.Entity("PostyLand.Domain.Entities.BillingHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<int>("EntryType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProviderReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SubscriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("TenantId", "OccurredAt");
+
+                    b.ToTable("billing_history", (string)null);
                 });
 
             modelBuilder.Entity("PostyLand.Domain.Entities.Subscription", b =>
@@ -121,6 +183,24 @@ namespace PostyLand.Persistence.Migrations.MainDb
                     b.ToTable("tenants", (string)null);
                 });
 
+            modelBuilder.Entity("PostyLand.Domain.Entities.BillingHistory", b =>
+                {
+                    b.HasOne("PostyLand.Domain.Entities.Subscription", "Subscription")
+                        .WithMany("BillingHistoryEntries")
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PostyLand.Domain.Entities.Tenant", "Tenant")
+                        .WithMany("BillingHistoryEntries")
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Subscription");
+
+                    b.Navigation("Tenant");
+                });
+
             modelBuilder.Entity("PostyLand.Domain.Entities.Subscription", b =>
                 {
                     b.HasOne("PostyLand.Domain.Entities.Tenant", "Tenant")
@@ -132,8 +212,15 @@ namespace PostyLand.Persistence.Migrations.MainDb
                     b.Navigation("Tenant");
                 });
 
+            modelBuilder.Entity("PostyLand.Domain.Entities.Subscription", b =>
+                {
+                    b.Navigation("BillingHistoryEntries");
+                });
+
             modelBuilder.Entity("PostyLand.Domain.Entities.Tenant", b =>
                 {
+                    b.Navigation("BillingHistoryEntries");
+
                     b.Navigation("Subscription");
                 });
 #pragma warning restore 612, 618

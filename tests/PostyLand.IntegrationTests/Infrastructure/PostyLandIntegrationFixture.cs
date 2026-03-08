@@ -107,7 +107,7 @@ public sealed class PostyLandIntegrationFixture : IAsyncLifetime
         {
             await using var scope = Factory.Services.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<MainDbContext>();
-            var tenant = await db.Tenants.AsNoTracking().SingleOrDefaultAsync(x => x.Id == tenantId);
+            var tenant = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(x => x.Id == tenantId);
             if (tenant is not null && tenant.Status == status)
             {
                 return;

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PostyLand.Application.Common.Exceptions;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Persistence.Context;
 
 namespace PostyLand.Persistence.Repositories;
@@ -12,7 +13,7 @@ public sealed class TenantMigrationService(
     public async Task RunForTenantAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         var tenant = await mainDbContext.Tenants.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == tenantId, cancellationToken);
 
         if (tenant is null)
         {
@@ -32,3 +33,5 @@ public sealed class TenantMigrationService(
         await tenantDbContext.Database.MigrateAsync(cancellationToken);
     }
 }
+
+

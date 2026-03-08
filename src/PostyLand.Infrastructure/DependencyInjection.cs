@@ -4,7 +4,9 @@ using Amazon.S3;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
+using PostyLand.Application.Features.ExternalAuth;
 using PostyLand.Infrastructure.Auth;
 using PostyLand.Infrastructure.BackgroundJobs;
 using PostyLand.Infrastructure.MultiTenancy;
@@ -19,6 +21,7 @@ public static class DependencyInjection
         services.Configure<EncryptionOptions>(configuration.GetSection(EncryptionOptions.SectionName));
         services.Configure<TenantDatabaseOptions>(configuration.GetSection(TenantDatabaseOptions.SectionName));
         services.Configure<ProvisioningOptions>(configuration.GetSection(ProvisioningOptions.SectionName));
+        services.Configure<ExternalAuthOptions>(configuration.GetSection(ExternalAuthOptions.SectionName));
 
         services.AddScoped<ITenantProvider, TenantProvider>();
         services.AddScoped<IUserContextProvider, UserContextProvider>();
@@ -28,6 +31,12 @@ public static class DependencyInjection
         services.AddScoped<ITenantOnboardingJobClient, TenantOnboardingJobClient>();
         services.AddScoped<TenantOnboardingJob>();
         services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+        services.AddScoped<IExternalAuthService, ExternalAuthService>();
+        services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+        services.AddScoped<IMicrosoftAuthService, MicrosoftAuthService>();
+        services.AddScoped<IExternalAuthStateProtector, ExternalAuthStateProtector>();
+
+        services.AddHttpClient();
 
         services.AddSingleton<IAmazonS3>(provider =>
         {
@@ -44,3 +53,5 @@ public static class DependencyInjection
         return services;
     }
 }
+
+

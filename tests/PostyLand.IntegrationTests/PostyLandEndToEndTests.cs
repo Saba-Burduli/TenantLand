@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 using PostyLand.Application.Features.Tenants;
 using PostyLand.Domain.Enums;
 using PostyLand.IntegrationTests.Infrastructure;
@@ -67,10 +69,12 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         var tenant = await fixture.RegisterTenantAndWaitAsync();
 
         var missingSubdomain = await fixture.Client.GetAsync("/api/not-found");
+        var missingBody = await missingSubdomain.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.NotFound, missingSubdomain.StatusCode);
+        Assert.Contains("Tenant subdomain was not found", missingBody, StringComparison.OrdinalIgnoreCase);
 
         var unknownReq = new HttpRequestMessage(HttpMethod.Get, "/api/not-found");
-        unknownReq.Headers.Host = "unknown.postyland.com";
+        unknownReq.Headers.Add("X-Tenant-Subdomain", "unknown");
         var unknownResponse = await fixture.Client.SendAsync(unknownReq);
         var unknownBody = await unknownResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.NotFound, unknownResponse.StatusCode);
@@ -85,7 +89,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         }
 
         var inactiveReq = new HttpRequestMessage(HttpMethod.Get, "/api/not-found");
-        inactiveReq.Headers.Host = $"{tenant.Subdomain}.postyland.com";
+        inactiveReq.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
         var inactiveResponse = await fixture.Client.SendAsync(inactiveReq);
         var inactiveBody = await inactiveResponse.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.Forbidden, inactiveResponse.StatusCode);
@@ -97,7 +101,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
     {
         var tenant = await fixture.RegisterTenantAndWaitAsync();
 
-        var validToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: "Owner", scope: "tenant.api");
+        var validToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
 
         var goodRequest = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/ping");
         goodRequest.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
@@ -105,7 +109,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         var goodResponse = await fixture.Client.SendAsync(goodRequest);
         Assert.Equal(HttpStatusCode.OK, goodResponse.StatusCode);
 
-        var mismatchToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: "Owner", scope: "tenant.api");
+        var mismatchToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.Owner, scope: "tenant.api");
 
         var mismatchRequest = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/ping");
         mismatchRequest.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
@@ -115,7 +119,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         Assert.Equal(HttpStatusCode.Forbidden, mismatchResponse.StatusCode);
         Assert.Contains("JWT tenant does not match", mismatchBody, StringComparison.OrdinalIgnoreCase);
 
-        var noScopeToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: "Owner", scope: null);
+        var noScopeToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: RoleStatus.Owner, scope: null);
 
         var noScopeRequest = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/ping");
         noScopeRequest.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
@@ -131,7 +135,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
     {
         var tenant = await fixture.RegisterTenantAndWaitAsync();
 
-        var nonAdminToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: "Owner", scope: "tenant.api");
+        var nonAdminToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
 
         var ownerPing = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/ping");
         ownerPing.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
@@ -144,7 +148,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         var deniedResponse = await fixture.Client.SendAsync(deniedRequest);
         Assert.Equal(HttpStatusCode.Forbidden, deniedResponse.StatusCode);
 
-        var adminToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: "PlatformAdmin", scope: "platform.admin");
+        var adminToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.PlatformAdmin, scope: "platform.admin");
 
         var allowedRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/admin/tenants/{tenant.TenantId}/migrations/run");
         allowedRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
@@ -153,12 +157,154 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
     }
 
     [Fact]
+    public async Task BillingHistory_TenantUsers_ShouldOnlySeeOwnTenantHistory()
+    {
+        var tenant1 = await fixture.RegisterTenantAndWaitAsync();
+        var tenant2 = await fixture.RegisterTenantAndWaitAsync();
+
+        var tenant1Token = CreateToken(Guid.NewGuid(), tenant1.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
+        var tenant2Token = CreateToken(Guid.NewGuid(), tenant2.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
+
+        var tenant1Create = new HttpRequestMessage(HttpMethod.Post, "/api/tenant/billing-history");
+        tenant1Create.Headers.Add("X-Tenant-Subdomain", tenant1.Subdomain);
+        tenant1Create.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenant1Token);
+        tenant1Create.Content = JsonContent.Create(new
+        {
+            amount = 99.90m,
+            currency = "USD",
+            entryType = BillingHistoryEntryType.Charge,
+            status = BillingHistoryRecordStatus.Succeeded,
+            occurredAt = DateTime.UtcNow,
+            providerReference = "tenant1-ch-1",
+            note = "initial charge"
+        });
+        var tenant1CreateResponse = await fixture.Client.SendAsync(tenant1Create);
+        Assert.Equal(HttpStatusCode.OK, tenant1CreateResponse.StatusCode);
+
+        var tenant2Create = new HttpRequestMessage(HttpMethod.Post, "/api/tenant/billing-history");
+        tenant2Create.Headers.Add("X-Tenant-Subdomain", tenant2.Subdomain);
+        tenant2Create.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenant2Token);
+        tenant2Create.Content = JsonContent.Create(new
+        {
+            amount = 49.50m,
+            currency = "USD",
+            entryType = BillingHistoryEntryType.Renewal,
+            status = BillingHistoryRecordStatus.Pending,
+            occurredAt = DateTime.UtcNow,
+            providerReference = "tenant2-r-1",
+            note = "renewal pending"
+        });
+        var tenant2CreateResponse = await fixture.Client.SendAsync(tenant2Create);
+        Assert.Equal(HttpStatusCode.OK, tenant2CreateResponse.StatusCode);
+
+        var tenant1List = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/billing-history?page=1&pageSize=20");
+        tenant1List.Headers.Add("X-Tenant-Subdomain", tenant1.Subdomain);
+        tenant1List.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenant1Token);
+        var tenant1ListResponse = await fixture.Client.SendAsync(tenant1List);
+        var tenant1Body = await tenant1ListResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, tenant1ListResponse.StatusCode);
+
+        using (var doc = JsonDocument.Parse(tenant1Body))
+        {
+            var totalCount = doc.RootElement.GetProperty("totalCount").GetInt32();
+            Assert.Equal(1, totalCount);
+
+            var firstItem = doc.RootElement.GetProperty("items")[0];
+            Assert.Equal(tenant1.TenantId, firstItem.GetProperty("tenantId").GetGuid());
+            Assert.Equal("tenant1-ch-1", firstItem.GetProperty("providerReference").GetString());
+        }
+
+        var crossTenantAttempt = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/billing-history");
+        crossTenantAttempt.Headers.Add("X-Tenant-Subdomain", tenant2.Subdomain);
+        crossTenantAttempt.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenant1Token);
+        var crossTenantResponse = await fixture.Client.SendAsync(crossTenantAttempt);
+        Assert.Equal(HttpStatusCode.Forbidden, crossTenantResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task BillingHistory_Admin_ShouldQueryAnyTenant()
+    {
+        var tenant = await fixture.RegisterTenantAndWaitAsync();
+
+        var tenantToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, "/api/tenant/billing-history");
+        createRequest.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenantToken);
+        createRequest.Content = JsonContent.Create(new
+        {
+            amount = 10.00m,
+            currency = "usd",
+            entryType = BillingHistoryEntryType.Adjustment,
+            status = BillingHistoryRecordStatus.Succeeded,
+            occurredAt = DateTime.UtcNow,
+            providerReference = "adj-1",
+            note = "manual adjustment"
+        });
+        var createResponse = await fixture.Client.SendAsync(createRequest);
+        Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
+
+        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.PlatformAdmin, scope: "platform.admin");
+        var adminListRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/admin/tenants/{tenant.TenantId}/billing-history?page=1&pageSize=10");
+        adminListRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", platformToken);
+        var adminListResponse = await fixture.Client.SendAsync(adminListRequest);
+        var adminBody = await adminListResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, adminListResponse.StatusCode);
+
+        using var doc = JsonDocument.Parse(adminBody);
+        var totalCount = doc.RootElement.GetProperty("totalCount").GetInt32();
+        Assert.True(totalCount >= 1);
+        var firstItem = doc.RootElement.GetProperty("items")[0];
+        Assert.Equal(tenant.TenantId, firstItem.GetProperty("tenantId").GetGuid());
+    }
+
+    [Fact]
+    public async Task BillingHistory_Admin_ShouldCreateForAnyTenant()
+    {
+        var tenant = await fixture.RegisterTenantAndWaitAsync();
+
+        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.PlatformAdmin, scope: "platform.admin");
+        var createRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/admin/tenants/{tenant.TenantId}/billing-history");
+        createRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", platformToken);
+        createRequest.Content = JsonContent.Create(new
+        {
+            amount = 25.75m,
+            currency = "USD",
+            entryType = BillingHistoryEntryType.Charge,
+            status = BillingHistoryRecordStatus.Succeeded,
+            occurredAt = DateTime.UtcNow,
+            providerReference = "admin-create-1",
+            note = "platform-created"
+        });
+
+        var createResponse = await fixture.Client.SendAsync(createRequest);
+        var createBody = await createResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, createResponse.StatusCode);
+
+        using (var createDoc = JsonDocument.Parse(createBody))
+        {
+            Assert.Equal(tenant.TenantId, createDoc.RootElement.GetProperty("tenantId").GetGuid());
+            Assert.Equal("admin-create-1", createDoc.RootElement.GetProperty("providerReference").GetString());
+        }
+
+        var tenantToken = CreateToken(Guid.NewGuid(), tenant.TenantId, role: RoleStatus.Owner, scope: "tenant.api");
+        var tenantList = new HttpRequestMessage(HttpMethod.Get, "/api/tenant/billing-history?page=1&pageSize=10");
+        tenantList.Headers.Add("X-Tenant-Subdomain", tenant.Subdomain);
+        tenantList.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tenantToken);
+        var tenantListResponse = await fixture.Client.SendAsync(tenantList);
+        var tenantListBody = await tenantListResponse.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, tenantListResponse.StatusCode);
+
+        using var listDoc = JsonDocument.Parse(tenantListBody);
+        Assert.True(listDoc.RootElement.GetProperty("totalCount").GetInt32() >= 1);
+    }
+
+    [Fact]
     public async Task TenantMigration_ShouldRemainIsolatedPerTenant()
     {
         var tenant1 = await fixture.RegisterTenantAndWaitAsync();
         var tenant2 = await fixture.RegisterTenantAndWaitAsync();
 
-        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: "PlatformAdmin", scope: "platform.admin");
+        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.PlatformAdmin, scope: "platform.admin");
 
         var migrateRequest = new HttpRequestMessage(HttpMethod.Post, $"/api/admin/tenants/{tenant1.TenantId}/migrations/run");
         migrateRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", platformToken);
@@ -178,7 +324,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         var tenant1 = await fixture.RegisterTenantAndWaitAsync();
         var tenant2 = await fixture.RegisterTenantAndWaitAsync();
 
-        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: "PlatformAdmin", scope: "platform.admin");
+        var platformToken = CreateToken(Guid.NewGuid(), Guid.NewGuid(), role: RoleStatus.PlatformAdmin, scope: "platform.admin");
 
         await MigrateTenantAsync(tenant1.TenantId, platformToken);
         await MigrateTenantAsync(tenant2.TenantId, platformToken);
@@ -244,7 +390,7 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
         return await tenantDb.MigrationMarkers.CountAsync(x => x.Name == markerName);
     }
 
-    private string CreateToken(Guid userId, Guid tenantId, string role, string? scope)
+    private string CreateToken(Guid userId, Guid tenantId, RoleStatus role, string? scope)
     {
         return JwtTokenFactory.Create(
             fixture.GetRuntimeConfigurationValue("Jwt:SigningKey"),
@@ -256,3 +402,5 @@ public sealed class PostyLandEndToEndTests(PostyLandIntegrationFixture fixture)
             scope);
     }
 }
+
+

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using PostyLand.Domain.Enums;
 
 namespace PostyLand.IntegrationTests.Infrastructure;
 
@@ -13,7 +14,7 @@ public static class JwtTokenFactory
         string audience,
         Guid userId,
         Guid tenantId,
-        string role,
+        RoleStatus role,
         string? scope)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
@@ -23,7 +24,7 @@ public static class JwtTokenFactory
         {
             new("UserId", userId.ToString()),
             new("TenantId", tenantId.ToString()),
-            new("Role", role)
+            new("Role", role.ToString())
         };
 
         if (!string.IsNullOrWhiteSpace(scope))

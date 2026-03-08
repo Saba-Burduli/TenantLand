@@ -6,7 +6,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using PostyLand.Application.Common.Contexts;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
 
 namespace PostyLand.Infrastructure.Provisioning;
 
@@ -114,3 +115,5 @@ public sealed class TenantProvisioningService(
         logger.LogInformation("Bucket created for tenant {TenantId}", tenantContext.TenantId);
     }
 }
+
+

@@ -2,7 +2,9 @@ using System.Security.Claims;
 using PostyLand.API.Logging;
 using PostyLand.Application.Common.Contexts;
 using PostyLand.Application.Common.Exceptions;
-using PostyLand.Application.Common.Interfaces;
+using PostyLand.Application.Common.Interfaces.AdminDbInterfaces;
+using PostyLand.Application.Common.Interfaces.TenantInterfaces;
+using PostyLand.Domain.Enums;
 
 namespace PostyLand.API.Middleware;
 
@@ -34,6 +36,11 @@ public sealed class TenantJwtScopeMiddleware(RequestDelegate next)
                 throw new ForbiddenException("JWT is missing required role/scope claims.");
             }
 
+            if (!Enum.TryParse<RoleStatus>(roleClaim, true, out var roleStatus) || roleStatus == RoleStatus.Unknown)
+            {
+                throw new ForbiddenException("JWT contains unsupported role.");
+            }
+
             var resolvedTenant = tenantProvider.Current;
             if (resolvedTenant is not null && resolvedTenant.TenantId != tokenTenantId)
             {
@@ -44,7 +51,8 @@ public sealed class TenantJwtScopeMiddleware(RequestDelegate next)
             {
                 UserId = userId,
                 TenantId = tokenTenantId,
-                Role = roleClaim,
+                Subdomain = resolvedTenant?.Subdomain ?? string.Empty,
+                Role = roleStatus,
                 Scope = scopeClaim
             });
 
@@ -55,3 +63,5 @@ public sealed class TenantJwtScopeMiddleware(RequestDelegate next)
         await next(context);
     }
 }
+
+
