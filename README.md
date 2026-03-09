@@ -6,7 +6,7 @@ Core multi-tenant SaaS foundation for a marketing management platform.
 
 ### 1. Prerequisites
 
-- .NET SDK 10.x
+- .NET SDK 10
 - Docker Desktop (or Docker Engine with Compose)
 - PostgreSQL client tools (optional, for manual checks)
 
