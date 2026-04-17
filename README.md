@@ -16,6 +16,7 @@ Core multi-tenant SaaS foundation for a marketing management platform.
 
 ```powershell
 docker compose up -d
+
 ```
 
 This starts PostgreSQL on `localhost:5432` with:
