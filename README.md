@@ -3,7 +3,6 @@
 
 
 
-
 # PostyLand
 
 Core multi-tenant SaaS foundation for a marketing management platform.
